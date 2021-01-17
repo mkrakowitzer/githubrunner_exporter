@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/mkrakowitzer/githubrunner_exporter/api"
@@ -28,6 +29,22 @@ var (
 	)
 )
 
+func setRunnerStatusGauge(status string) (float64, error) {
+	if status == "online" {
+		return 1, nil
+	} else if status == "offline" {
+		return 0, nil
+	}
+	return 0, fmt.Errorf("Status did not match online or offline")
+}
+
+func setRunnerBusyGauge(busy bool) float64 {
+	if busy {
+		return 1
+	}
+	return 0
+}
+
 func getRunnerStatus(apiClient *api.Client) {
 	for {
 
@@ -38,17 +55,13 @@ func getRunnerStatus(apiClient *api.Client) {
 
 		for _, v := range run.Runners {
 
-			if v.Status == "online" {
-				runnersStatusGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(1)
-			} else {
-				runnersStatusGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(0)
+			result, err := setRunnerStatusGauge(v.Status)
+			if err != nil {
+				log.Info(err)
 			}
+			runnersStatusGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(result)
+			runnersBusyGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(setRunnerBusyGauge(v.Busy))
 
-			if v.Busy {
-				runnersBusyGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(1)
-			} else {
-				runnersBusyGauge.WithLabelValues(strconv.Itoa(v.ID), v.Name, v.Os).Set(1)
-			}
 			log.WithFields(log.Fields{
 				"ID":     v.ID,
 				"Name":   v.Name,

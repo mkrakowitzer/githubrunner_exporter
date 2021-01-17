@@ -3,8 +3,8 @@ package cmd
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/mkrakowitzer/githubrunner_exporter/api"
@@ -34,7 +34,7 @@ var (
 	)
 	rateResetGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "github_rate_limit",
+			Name: "github_ratelimit",
 			Help: "Time until rate limit resets (epoch)",
 		},
 		[]string{},

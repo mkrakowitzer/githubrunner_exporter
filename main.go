@@ -23,8 +23,10 @@ package main
 
 import (
 	"github.com/mkrakowitzer/githubrunner_exporter/cmd"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
+	log.Info("githubrunner_exporter is starting")
 	cmd.Execute()
 }

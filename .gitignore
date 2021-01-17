@@ -1,1 +1,3 @@
 githubrunner_exporter
+bin/
+coverage/

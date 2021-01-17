@@ -25,10 +25,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/mkrakowitzer/githubrunner_exporter/api"
 	"github.com/mkrakowitzer/githubrunner_exporter/context"
@@ -60,10 +61,8 @@ type RunnersPayload struct {
 var rootCmd = &cobra.Command{
 	Use:   "githubrunner_exporter",
 	Short: "An exporter for GitHub selfhosted runners",
-	Long: `An exporter for GitHub selfhosted runners
-	
-MU_GITHUB_TOKEN and GITHUB_ORG environment variables must be set`,
-	RunE: run,
+	Long:  `An exporter for GitHub selfhosted runners`,
+	RunE:  run,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -86,7 +85,12 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().IntP("interval", "i", 30, "Interval in seconds")
+	rootCmd.Flags().StringP("token", "t", "", "GitHub Token")
+	rootCmd.Flags().StringP("org", "o", "", "Github Organisation Name")
+	viper.BindPFlag("interval", rootCmd.Flags().Lookup("interval"))
+	viper.BindPFlag("token", rootCmd.Flags().Lookup("token"))
+	viper.BindPFlag("org", rootCmd.Flags().Lookup("org"))
 
 	prometheus.MustRegister(runnersStatusGauge)
 	prometheus.MustRegister(runnersBusyGauge)
@@ -98,6 +102,11 @@ func init() {
 
 }
 
+func isNumeric(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
+}
+
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
@@ -107,8 +116,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 
 		// Search config in home directory with name ".githubrunner_exporter" (without extension).
@@ -122,6 +130,12 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
+
+	// Validate interval is a numeric value
+	v := viper.GetString("interval")
+	if !isNumeric(v) {
+		log.Fatalf("interval %v is not a numberic value", v)
 	}
 }
 
