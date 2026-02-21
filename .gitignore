@@ -1,3 +1,5 @@
 githubrunner_exporter
 bin/
 coverage/
+
+AGENTS.md
